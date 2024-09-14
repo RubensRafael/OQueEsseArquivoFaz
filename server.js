@@ -3,7 +3,7 @@ const { createServer } = require("node:http");
 const enderecoServidor = "127.0.0.1";
 const porta = 3000;
 
-const apiKey = "";
+const apiKey = ""; // Substitua pela sua chave da API do Gemini
 
 const sever = createServer((req, res) => {
   if (req.method === "POST") {
@@ -18,7 +18,7 @@ const sever = createServer((req, res) => {
         const bodyJSON = JSON.parse(body);
         const conteudoArquivo = bodyJSON.arquivo;
 
-        enviarParaChatGPT(conteudoArquivo)
+        enviarParaGemini(conteudoArquivo)
           .then((response) => {
             res.statusCode = 200;
             res.setHeader("Content-Type", "application/json");
@@ -43,28 +43,31 @@ const sever = createServer((req, res) => {
   }
 });
 
-async function enviarParaChatGPT(conteudoArquivo) {
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: "gpt-3.5-turbo",
-      messages: [
-        {
-          role: "user",
-          content: `Explique o que faz o seguinte código, explicando as principais variaveis e funções: \n\n${conteudoArquivo}`,
-        },
-      ],
-      max_tokens: 150,
-    }),
-  });
+async function enviarParaGemini(conteudoArquivo) {
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`,
+    {
+      // URL da API do Gemini
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: `Explique o que faz o seguinte código, explicando as principais variaveis e funções: \n\n${conteudoArquivo}`,
+              },
+            ],
+          },
+        ],
+      }),
+    }
+  );
 
   const dados = await res.json();
-
-  return dados;
+  return dados.candidates[0].content.parts[0].text;
 }
 
 sever.listen(porta, enderecoServidor, () => {
